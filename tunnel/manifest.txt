@@ -1,4 +1,4 @@
-version=game-nfsmw-aot-20261028-endofheap-hotfix
+version=game-nfsmw-aot-20261029-source-endofheap-r1
 title_id=NFMRA0001
-vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW05_AOT_EndOfHeap_HOTFIX.vpk
-sha256=ddddf0097490b42ad24e2b044a9c6473d714be622d433ab22d09fba8606e6538
+vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW05_AOT_Source_EndOfHeap_20261029.vpk
+sha256=c181668278326d18705174b7029b19574ec0863fc5470073189594fe318db9de
