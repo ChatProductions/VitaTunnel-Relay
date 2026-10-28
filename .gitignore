@@ -1,0 +1,7 @@
+build/
+vendor/
+assets/cacert.pem
+*.vpk
+config.ini
+*.token
+__pycache__/

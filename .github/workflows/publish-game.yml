@@ -1,0 +1,45 @@
+name: Publish game update to VitaTunnel
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  manifest:
+    if: startsWith(github.event.release.tag_name, 'game-')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create manifest from ONE VPK release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, json, subprocess, pathlib, hashlib, urllib.parse
+          repo=os.environ['REPO']; tag=os.environ['RELEASE_TAG']
+          data=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/releases/tags/{tag}']))
+          assets=[a for a in data['assets'] if a['name'].lower().endswith('.vpk')]
+          if len(assets)!=1:raise SystemExit('Game release must have exactly one .vpk asset')
+          title_id=pathlib.Path('relay/target_id.txt').read_text().strip()
+          if len(title_id)!=9 or not title_id.isascii() or not title_id.isalnum():raise SystemExit('Invalid target ID')
+          url=assets[0]['browser_download_url']
+          subprocess.run(['gh','release','download',tag,'--repo',repo,
+                          '--pattern',assets[0]['name'],'--dir','/tmp','--clobber'],check=True)
+          p=pathlib.Path('/tmp')/assets[0]['name']
+          h=hashlib.sha256()
+          with p.open('rb') as f:
+            for chunk in iter(lambda:f.read(1024*1024),b''):h.update(chunk)
+          digest=h.hexdigest()
+          pathlib.Path('tunnel').mkdir(exist_ok=True)
+          pathlib.Path('tunnel/manifest.txt').write_text(f'version={tag}\ntitle_id={title_id}\nvpk_url={url}\nsha256={digest}\n')
+          print(f'{title_id} {tag} {digest}')
+          PY
+      - name: Commit updated manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tunnel/manifest.txt
+          git diff --staged --quiet || (git commit -m "Publish VitaTunnel manifest for ${{ github.event.release.tag_name }}" && git push)

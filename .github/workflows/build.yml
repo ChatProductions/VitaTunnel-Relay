@@ -1,0 +1,39 @@
+name: Build VitaTunnel VPK
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/**'
+      - 'CMakeLists.txt'
+      - 'tools/**'
+      - '.github/workflows/build.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: vitasdk/vitasdk:2026.08
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install VitaSDK packages
+        run: |
+          vdpm install libvita2d libzip curl openssl zlib zstd xz bzip2 libpng libjpeg-turbo freetype
+      - name: Install pinned installer module
+        run: bash tools/prepare_vendor.sh
+      - name: Bundle host CA certificate store
+        run: |
+          if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+            cp /etc/ssl/certs/ca-certificates.crt assets/cacert.pem
+          else
+            echo 'Missing CA certificate store' >&2
+            exit 1
+          fi
+      - name: Configure and compile
+        run: |
+          export VITASDK="${VITASDK:-/usr/local/vitasdk}"
+          cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="$VITASDK/share/vita.toolchain.cmake" -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel 2
+      - name: Upload VPK
+        uses: actions/upload-artifact@v4
+        with:
+          name: VitaTunnel-v0.1-VPK
+          path: build/VitaTunnel.vpk
