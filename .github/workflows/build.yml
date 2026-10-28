@@ -8,6 +8,8 @@ on:
       - 'tools/**'
       - 'assets/**'
       - '.github/workflows/build.yml'
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -53,3 +55,27 @@ jobs:
         with:
           name: VitaTunnel-v0.3.4-VPK
           path: build/VitaTunnel.vpk
+
+  publish-bridge:
+    name: Publish v0.3.4 bridge installer
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified VitaSDK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: VitaTunnel-v0.3.4-VPK
+          path: dist
+      - name: Publish bridge installer as GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -s dist/VitaTunnel.vpk
+          if gh release view vitatunnel-v0.3.4 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload vitatunnel-v0.3.4 dist/VitaTunnel.vpk --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create vitatunnel-v0.3.4 dist/VitaTunnel.vpk \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "VitaTunnel v0.3.4 (direct raw-host VPK downloads)" \
+              --notes "Use once to replace v0.3.3. Preserves existing config, downloads verified AOT builds from the repository-scoped raw.githubusercontent.com package path, avoids GitHub Release TLS redirects. No private game ELF or credentials are bundled."
+          fi
