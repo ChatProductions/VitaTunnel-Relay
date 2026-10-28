@@ -14,6 +14,10 @@ int main(int argc, char **argv){
  assert(vt_valid_sha256("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"));
  assert(!vt_valid_sha256("BAD"));
  assert(vt_valid_vpk_url("https://github.com/test/repo/releases/download/v1/game.vpk"));
+ assert(vt_valid_vpk_url("https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/test.vpk"));
+ assert(!vt_valid_vpk_url("https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/test.vpk?token=x"));
+ assert(!vt_valid_vpk_url("https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/other/test.vpk"));
+ assert(!vt_valid_vpk_url("https://evil.example.com/test.vpk"));
  assert(!vt_valid_vpk_url("http://github.com/test/repo/releases/download/v1/game.vpk"));
  assert(!vt_valid_vpk_url("https://evil.example.com/release.vpk"));
  assert(vt_valid_logpath("ux0:data/ps2vita/startup.txt"));
