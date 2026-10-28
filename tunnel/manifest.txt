@@ -1,4 +1,4 @@
-version=game-nfsmw-aot-20261029-vrsqrt-r2
+version=game-nfsmw-aot-20261029-memorysize-r3
 title_id=NFMRA0001
-vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW05_AOT_VRSQRT_20261029.vpk
-sha256=ae75174ebe737a0783b079039a404a342f53055173547b444338a67baf0f803d
+vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW05_AOT_MEMORYSIZE_20261029.vpk
+sha256=f258b77e9ef2cb912667f3f25122a03c3212ae7ef2523f8d10644a232ce41ef4
