@@ -27,9 +27,13 @@ void vt_screen_message(const char *msg){
   vita2d_clear_screen();
   vita2d_draw_rectangle(0,0,960,544,0xFF161B27);
   vita2d_draw_rectangle(0,0,960,75,0xFF455C9B);
-  vita2d_pgf_draw_text(font,38,49,0xFFFFFFFF,1.45f,"VitaTunnel   0.3");
+  vita2d_pgf_draw_text(font,38,49,0xFFFFFFFF,1.45f,"VitaTunnel   0.3.1");
   vita2d_pgf_draw_text(font,38,130,0xFFFFFFFF,1.05f,"NFSMW 2005 AOT Test / secure GitHub relay");
   vita2d_pgf_draw_text(font,38,195,0xFFE0F5FF,1.1f,state);
+  if(strstr(state,"failed") || strstr(state,"unreadable")){
+    const char *details=vt_report_last_error();
+    if(details[0])vita2d_pgf_draw_text(font,38,229,0xFFBAD7E9,0.72f,details);
+  }
   vita2d_pgf_draw_text(font,38,263,0xFF9FC0CE,0.9f,"Open this app to sync. Nothing runs in the background.");
   vita2d_pgf_draw_text(font,38,306,0xFF9FC0CE,0.9f,"Diagnostics: configured directories only, no PC access.");
   vita2d_pgf_draw_text(font,38,425,0xFFEBDBB2,0.85f,"SQUARE: retry    CIRCLE: exit    SELECT: details");

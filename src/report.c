@@ -6,6 +6,9 @@
 #include <ctype.h>
 #include <curl/curl.h>
 #include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/x509_vfy.h>
+#include <openssl/err.h>
 #include <psp2/net/net.h>
 #include <psp2/net/netctl.h>
 #include <psp2/sysmodule.h>
@@ -18,10 +21,61 @@ static void *netmem;
 static int netready;
 static unsigned char *ca_bundle;
 static size_t ca_bundle_len;
+static unsigned ca_root_count;
+static char curl_detail[160];
+const char *vt_report_last_error(void){return curl_detail;}
 
-/* The Vita's fopen() understands app0: paths, but OpenSSL's CA-file
- * loader may not. Read the bundled PEM using the Vita filesystem API,
- * then give curl its own in-memory copy for certificate verification. */
+/* curl 8.17's OpenSSL CAINFO_BLOB loader can fail with curl error 77
+ * if a single certificate cannot be added (including duplicate roots).
+ * Parse through OpenSSL on Vita, keep usable unique roots and supply curl
+ * only PEM entries successfully accepted by X509_STORE_add_cert. We never
+ * disable peer or hostname verification. */
+static int prepare_ca_bundle(const unsigned char *raw,size_t len,
+                             unsigned char **out,size_t *outlen){
+  if(len>(size_t)1024*1024)return -77;
+  BIO *input=BIO_new_mem_buf((void*)raw,(int)len);
+  BIO *output=BIO_new(BIO_s_mem());
+  X509_STORE *store=X509_STORE_new();
+  if(!input || !output || !store){
+    if(input)BIO_free(input);
+    if(output)BIO_free(output);
+    if(store)X509_STORE_free(store);
+    return -12;
+  }
+  unsigned accepted=0, ignored=0;
+  X509 *cert;
+  while((cert=PEM_read_bio_X509(input,NULL,NULL,NULL))!=NULL){
+    if(X509_STORE_add_cert(store,cert)==1){
+      if(PEM_write_bio_X509(output,cert)==1)accepted++;
+      else ignored++;
+    }else{
+      /* A rejected or duplicate root must not invalidate valid roots. */
+      ignored++;
+    }
+    ERR_clear_error();
+    X509_free(cert);
+  }
+  ERR_clear_error(); /* Reading the last PEM entry ends with PEM_R_NO_START_LINE. */
+  char *pem=NULL;
+  long n=BIO_get_mem_data(output,&pem);
+  int result=-77;
+  if(accepted>0 && n>0 && n<=1024*1024 && pem){
+    unsigned char *buf=malloc((size_t)n+1);
+    if(buf){
+      memcpy(buf,pem,(size_t)n);
+      buf[n]=0;
+      *out=buf;*outlen=(size_t)n;
+      ca_root_count=accepted;
+      result=0;
+    }else result=-12;
+  }
+  if(result<0){
+    snprintf(curl_detail,sizeof(curl_detail),
+             "CA parsing: %u trusted roots, %u rejected",accepted,ignored);
+  }
+  X509_STORE_free(store);BIO_free(output);BIO_free(input);
+  return result;
+}
 static int load_ca_bundle(void){
   static const char *paths[]={
     "app0:/cacert.pem", "app0:cacert.pem",
@@ -39,11 +93,20 @@ static int load_ca_bundle(void){
     fclose(f);
     data[n]=0;
     if(n==(size_t)size && strstr((const char*)data,"-----BEGIN CERTIFICATE-----")){
-      ca_bundle=data;ca_bundle_len=n;return 0;
+      unsigned char *clean=NULL;size_t clean_len=0;
+      int prepared=prepare_ca_bundle(data,n,&clean,&clean_len);
+      free(data);
+      if(prepared==0){
+        ca_bundle=clean;ca_bundle_len=clean_len;return 0;
+      }
+      if(prepared==-12)return -12;
+      continue;
     }
     free(data);
   }
-  return -77; /* Missing or unreadable CA bundle; never disable verification. */
+  if(!curl_detail[0])snprintf(curl_detail,sizeof(curl_detail),
+                              "Could not read or parse bundled PEM certificates");
+  return -77;
 }
 int vt_report_network_init(void){
   sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
@@ -67,7 +130,7 @@ int vt_report_network_init(void){
 void vt_report_network_shutdown(void){
   if(!netready)return;
   curl_global_cleanup();sceNetCtlTerm();sceNetTerm();
-  free(ca_bundle);ca_bundle=NULL;ca_bundle_len=0;
+  free(ca_bundle);ca_bundle=NULL;ca_bundle_len=0;ca_root_count=0;
   free(netmem);netmem=NULL;
   sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);netready=0;
 }
@@ -88,8 +151,9 @@ static int download_progress(void *ctx,curl_off_t total,curl_off_t got,
   return 0;
 }
 static CURLcode options(CURL *h,const char *url){
+  curl_detail[0]=0;
   curl_easy_setopt(h,CURLOPT_URL,url);
-  curl_easy_setopt(h,CURLOPT_USERAGENT,"VitaTunnel/0.3");
+  curl_easy_setopt(h,CURLOPT_USERAGENT,"VitaTunnel/0.3.1");
   curl_easy_setopt(h,CURLOPT_SSL_VERIFYPEER,1L);
   curl_easy_setopt(h,CURLOPT_SSL_VERIFYHOST,2L);
   struct curl_blob trust={ca_bundle,ca_bundle_len,CURL_BLOB_COPY};
@@ -112,8 +176,13 @@ static size_t to_file(char *ptr,size_t size,size_t nmemb,void *ctx){
 int vt_http_download(const char *url,const char *path){
   FILE *f=fopen(path,"wb");if(!f)return -1;
   CURL *h=curl_easy_init();if(!h){fclose(f);return -2;}
+  char errorbuf[CURL_ERROR_SIZE]={0};
+  curl_easy_setopt(h,CURLOPT_ERRORBUFFER,errorbuf);
   CURLcode setup=options(h,url);
-  if(setup!=CURLE_OK){curl_easy_cleanup(h);fclose(f);remove(path);return -(int)setup;}
+  if(setup!=CURLE_OK){
+    snprintf(curl_detail,sizeof(curl_detail),"TLS setup: %s",curl_easy_strerror(setup));
+    curl_easy_cleanup(h);fclose(f);remove(path);return -(int)setup;
+  }
   DlProgress progress={0};
   curl_easy_setopt(h,CURLOPT_NOPROGRESS,0L);
   curl_easy_setopt(h,CURLOPT_XFERINFOFUNCTION,download_progress);
@@ -122,6 +191,11 @@ int vt_http_download(const char *url,const char *path){
   curl_easy_setopt(h,CURLOPT_WRITEDATA,f);
   vt_screen_message("Downloading securely...");
   CURLcode r=curl_easy_perform(h);long code=0;curl_easy_getinfo(h,CURLINFO_RESPONSE_CODE,&code);
+  if(r!=CURLE_OK){
+    snprintf(curl_detail,sizeof(curl_detail),"TLS (%u roots): %.115s",
+             ca_root_count,errorbuf[0]?errorbuf:curl_easy_strerror(r));
+    for(char *p=curl_detail;*p;p++)if((unsigned char)*p<32)*p=' ';
+  }
   curl_easy_cleanup(h);fclose(f);
   if(r!=CURLE_OK || code<200 || code>=300){remove(path);return r?-(int)r:-3;}
   return 0;
