@@ -239,7 +239,7 @@ static CURLcode options(CURL *h,const char *url,int group){
   curl_detail[0]=0;
   if(group<0 || group>=ca_group_count)return CURLE_SSL_CACERT_BADFILE;
   curl_easy_setopt(h,CURLOPT_URL,url);
-  curl_easy_setopt(h,CURLOPT_USERAGENT,"VitaTunnel/0.3.3");
+  curl_easy_setopt(h,CURLOPT_USERAGENT,"VitaTunnel/0.3.4");
   curl_easy_setopt(h,CURLOPT_SSL_VERIFYPEER,1L);
   curl_easy_setopt(h,CURLOPT_SSL_VERIFYHOST,2L);
   struct curl_blob trust={ca_bundle+ca_group_offset[group],
