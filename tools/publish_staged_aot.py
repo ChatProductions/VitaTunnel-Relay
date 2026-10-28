@@ -44,13 +44,13 @@ def embedded_title_id(vpk):
         value_start = data + data_offset
         if key_start >= len(sfo) or value_start > len(sfo):
             raise ValueError("SFO offset outside file")
-        key_end = sfo.find(b"\\x00", key_start)
+        key_end = sfo.find(b"\x00", key_start)
         if key_end < 0:
             raise ValueError("unterminated SFO key")
         if sfo[key_start:key_end] == b"TITLE_ID":
             if length > maximum or value_start + length > len(sfo):
                 raise ValueError("invalid SFO title field")
-            return sfo[value_start:value_start + length].rstrip(b"\\x00").decode("ascii")
+            return sfo[value_start:value_start + length].rstrip(b"\x00").decode("ascii")
     raise ValueError("SFO has no TITLE_ID")
 
 
@@ -59,7 +59,7 @@ def main():
     if request.get("title_id") != "NFMRA0001":
         raise ValueError("wrong target title")
     tag = required_string(request, "tag", r"game-[a-zA-Z0-9_.-]{1,42}")
-    filename = required_string(request, "filename", r"[A-Za-z0-9_.-]+\\.vpk")
+    filename = required_string(request, "filename", r"[A-Za-z0-9_.-]+\.vpk")
     expected = required_string(request, "sha256", r"[0-9a-f]{64}")
     blob_sha = required_string(request, "blob_sha", r"[0-9a-f]{40}")
 
@@ -90,7 +90,7 @@ def main():
     url = f"https://github.com/{REPOSITORY}/releases/download/{tag}/{filename}"
     MANIFEST.parent.mkdir(parents=True, exist_ok=True)
     MANIFEST.write_text(
-        f"version={tag}\\ntitle_id=NFMRA0001\\nvpk_url={url}\\nsha256={digest}\\n",
+        f"version={tag}\ntitle_id=NFMRA0001\nvpk_url={url}\nsha256={digest}\n",
         encoding="ascii")
     print(f"Published validated {actual_title} VPK ({len(raw)} bytes) and manifest.")
 
