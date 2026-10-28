@@ -9,6 +9,7 @@
 #include <openssl/pem.h>
 #include <openssl/x509_vfy.h>
 #include <openssl/err.h>
+#include <openssl/ssl.h>
 #include <psp2/net/net.h>
 #include <psp2/net/netctl.h>
 #include <psp2/sysmodule.h>
@@ -21,6 +22,7 @@ static void *netmem;
 static int netready;
 static unsigned char *ca_bundle;
 static size_t ca_bundle_len;
+static size_t ca_seed_len;
 static unsigned ca_root_count;
 static char curl_detail[160];
 const char *vt_report_last_error(void){return curl_detail;}
@@ -97,7 +99,17 @@ static int load_ca_bundle(void){
       int prepared=prepare_ca_bundle(data,n,&clean,&clean_len);
       free(data);
       if(prepared==0){
-        ca_bundle=clean;ca_bundle_len=clean_len;return 0;
+        /* Give libcurl one known-good anchor. Remaining roots are added
+         * individually in the SSL_CTX callback, avoiding the bulk PEM
+         * importer that has returned error 77 on the user's Vita. */
+        char *end=strstr((char*)clean,"-----END CERTIFICATE-----");
+        if(end){
+          size_t seed=(size_t)(end-(char*)clean)+strlen("-----END CERTIFICATE-----");
+          if(seed<clean_len && clean[seed]=='\n')seed++;
+          ca_bundle=clean;ca_bundle_len=clean_len;ca_seed_len=seed;
+          return 0;
+        }
+        free(clean);continue;
       }
       if(prepared==-12)return -12;
       continue;
@@ -130,7 +142,7 @@ int vt_report_network_init(void){
 void vt_report_network_shutdown(void){
   if(!netready)return;
   curl_global_cleanup();sceNetCtlTerm();sceNetTerm();
-  free(ca_bundle);ca_bundle=NULL;ca_bundle_len=0;ca_root_count=0;
+  free(ca_bundle);ca_bundle=NULL;ca_bundle_len=0;ca_root_count=0;ca_seed_len=0;
   free(netmem);netmem=NULL;
   sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);netready=0;
 }
@@ -150,14 +162,45 @@ static int download_progress(void *ctx,curl_off_t total,curl_off_t got,
   }
   return 0;
 }
+/* curl's OpenSSL backend first imports a single validated root from
+ * CAINFO_BLOB, then calls this hook. Add the remaining anchors one by one to
+ * the same verified X509_STORE. Duplicate certs are intentionally ignored. */
+static CURLcode populate_ssl_context(CURL *h,void *sslctx,void *userp){
+  (void)h;(void)userp;
+  if(!sslctx || !ca_bundle || !ca_bundle_len)return CURLE_SSL_CACERT_BADFILE;
+  X509_STORE *store=SSL_CTX_get_cert_store((SSL_CTX*)sslctx);
+  BIO *input=BIO_new_mem_buf(ca_bundle,(int)ca_bundle_len);
+  if(!store || !input){
+    if(input)BIO_free(input);
+    return CURLE_OUT_OF_MEMORY;
+  }
+  X509 *cert=NULL;
+  while((cert=PEM_read_bio_X509(input,NULL,NULL,NULL))!=NULL){
+    if(X509_STORE_add_cert(store,cert)!=1){
+      /* The first anchor is already present; duplicates are harmless. */
+      ERR_clear_error();
+    }
+    X509_free(cert);
+  }
+  ERR_clear_error();
+  BIO_free(input);
+  return CURLE_OK;
+}
 static CURLcode options(CURL *h,const char *url){
   curl_detail[0]=0;
   curl_easy_setopt(h,CURLOPT_URL,url);
-  curl_easy_setopt(h,CURLOPT_USERAGENT,"VitaTunnel/0.3.1");
+  curl_easy_setopt(h,CURLOPT_USERAGENT,"VitaTunnel/0.3.2");
   curl_easy_setopt(h,CURLOPT_SSL_VERIFYPEER,1L);
   curl_easy_setopt(h,CURLOPT_SSL_VERIFYHOST,2L);
-  struct curl_blob trust={ca_bundle,ca_bundle_len,CURL_BLOB_COPY};
+  /* Supplying the full bundle here can make VitaSDK curl 8.17/OpenSSL
+   * fail with 77. One trusted seed is enough to initialize its trust store;
+   * populate_ssl_context installs the complete trusted set afterward. */
+  if(!ca_seed_len || ca_seed_len>ca_bundle_len)return CURLE_SSL_CACERT_BADFILE;
+  struct curl_blob trust={ca_bundle,ca_seed_len,CURL_BLOB_COPY};
   CURLcode certificate_result=curl_easy_setopt(h,CURLOPT_CAINFO_BLOB,&trust);
+  if(certificate_result==CURLE_OK)
+    certificate_result=curl_easy_setopt(h,CURLOPT_SSL_CTX_FUNCTION,
+                                        populate_ssl_context);
   curl_easy_setopt(h,CURLOPT_PROTOCOLS,CURLPROTO_HTTPS);
   curl_easy_setopt(h,CURLOPT_REDIR_PROTOCOLS,CURLPROTO_HTTPS);
   curl_easy_setopt(h,CURLOPT_CONNECTTIMEOUT,20L);

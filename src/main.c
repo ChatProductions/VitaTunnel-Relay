@@ -27,7 +27,7 @@ void vt_screen_message(const char *msg){
   vita2d_clear_screen();
   vita2d_draw_rectangle(0,0,960,544,0xFF161B27);
   vita2d_draw_rectangle(0,0,960,75,0xFF455C9B);
-  vita2d_pgf_draw_text(font,38,49,0xFFFFFFFF,1.45f,"VitaTunnel   0.3.1");
+  vita2d_pgf_draw_text(font,38,49,0xFFFFFFFF,1.45f,"VitaTunnel   0.3.2");
   vita2d_pgf_draw_text(font,38,130,0xFFFFFFFF,1.05f,"NFSMW 2005 AOT Test / secure GitHub relay");
   vita2d_pgf_draw_text(font,38,195,0xFFE0F5FF,1.1f,state);
   if(strstr(state,"failed") || strstr(state,"unreadable")){
