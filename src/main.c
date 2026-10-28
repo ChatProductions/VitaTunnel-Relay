@@ -27,7 +27,7 @@ void vt_screen_message(const char *msg){
   vita2d_clear_screen();
   vita2d_draw_rectangle(0,0,960,544,0xFF161B27);
   vita2d_draw_rectangle(0,0,960,75,0xFF455C9B);
-  vita2d_pgf_draw_text(font,38,49,0xFFFFFFFF,1.45f,"VitaTunnel   0.3.3");
+  vita2d_pgf_draw_text(font,38,49,0xFFFFFFFF,1.45f,"VitaTunnel   0.3.4");
   vita2d_pgf_draw_text(font,38,130,0xFFFFFFFF,1.05f,"NFSMW 2005 AOT Test / secure GitHub relay");
   vita2d_pgf_draw_text(font,38,195,0xFFE0F5FF,1.1f,state);
   if(strstr(state,"failed") || strstr(state,"unreadable")){
@@ -142,9 +142,18 @@ static int sync_once(void){
   if(r<0){err_state("Invalid manifest",r);goto finish;}
   if(strcmp(cfg.title_id,mf.title_id)){r=-40;err_state("Manifest target ID mismatch",r);goto finish;}
   {
-    char expected_prefix[360];
-    snprintf(expected_prefix,sizeof(expected_prefix),"https://github.com/%s/%s/releases/download/",cfg.owner,cfg.repo);
-    if(strncmp(mf.vpk_url,expected_prefix,strlen(expected_prefix))){r=-43;err_state("Manifest VPK must belong to relay repository",r);goto finish;}
+    char release_prefix[360],raw_prefix[420];
+    snprintf(release_prefix,sizeof(release_prefix),
+             "https://github.com/%s/%s/releases/download/",cfg.owner,cfg.repo);
+    snprintf(raw_prefix,sizeof(raw_prefix),
+             "https://raw.githubusercontent.com/%s/%s/%s/tunnel/packages/",
+             cfg.owner,cfg.repo,cfg.branch);
+    // A raw package must come from this repo's pinned branch and package
+    // subdirectory. No arbitrary URLs, hosts, paths or tokenized redirects.
+    if(strncmp(mf.vpk_url,release_prefix,strlen(release_prefix)) &&
+       strncmp(mf.vpk_url,raw_prefix,strlen(raw_prefix))){
+      r=-43;err_state("Manifest VPK must belong to relay repository",r);goto finish;
+    }
   }
   char app_path[80];SceIoStat app_stat;
   snprintf(app_path,sizeof(app_path),"ux0:app/%s/eboot.bin",cfg.title_id);
