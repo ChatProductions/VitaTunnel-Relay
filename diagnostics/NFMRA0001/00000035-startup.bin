@@ -1,0 +1,6 @@
+build=nfsmw-aot-20261029-native-iop-r5
+private title AOT armed
+native_iop=enabled
+ioprp=ROMDIR aligned entry exceeds file bounds
+path=ux0:data/ps2vita/NFS/IOPRP280.IMG
+entries=18
