@@ -23,12 +23,12 @@ add_executable(vitatunnel src/main.c src/protocol.c src/report.c
   vendor/installer/src/sha1.c)
 target_include_directories(vitatunnel PRIVATE src vendor/installer/src)
 target_link_libraries(vitatunnel PRIVATE
-  zip zstd pthread lzma bz2 curl ssl crypto z
+  zip zstd lzma bz2 curl ssl crypto z
   vita2d freetype png jpeg
   SceNet_stub SceNetCtl_stub SceSsl_stub SceHttp_stub
   ScePromoterUtil_stub SceSysmodule_stub SceAppMgr_stub SceAppUtil_stub
   SceDisplay_stub SceGxm_stub SceCtrl_stub ScePower_stub ScePgf_stub
-  SceCommonDialog_stub m)
+  SceCommonDialog_stub m pthread)
 vita_create_self(eboot.bin vitatunnel UNSAFE)
 vita_create_vpk(VitaTunnel.vpk VITATUNN1 eboot.bin
   VERSION 01.00 NAME "VitaTunnel"
