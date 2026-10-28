@@ -1,4 +1,4 @@
-# VitaTunnel v0.3.2 — NFSMW 2005 AOT Test relay
+# VitaTunnel v0.3.3 — NFSMW 2005 AOT Test relay
 
 VitaTunnel is a **foreground-only PS Vita deployment and diagnostic relay**. It is a separate Vita app (TITLE_ID `VITATUNN1`), not the Need for Speed game itself. You launch VitaTunnel manually to check for a new AOT test VPK, verify it, install it, and launch it. After testing, reopen VitaTunnel to collect explicitly selected logs if you have enabled uploads.
 
@@ -43,11 +43,11 @@ The three named files are optional, so a crash before a particular file is gener
 ## Building VitaTunnel
 
 1. Open [Build VitaTunnel VPK](https://github.com/ChatProductions/VitaTunnel-Relay/actions/workflows/build.yml) in GitHub Actions, or let a source push start the workflow.
-2. Download the successful `VitaTunnel-v0.3.2-VPK` artifact and extract `VitaTunnel.vpk`.
+2. Download the successful `VitaTunnel-v0.3.3-VPK` artifact and extract `VitaTunnel.vpk`.
 3. Install it in VitaShell. The app keeps its own TITLE_ID `VITATUNN1`. The build validates that all LiveArea PNGs are indexed and non-interlaced.
 4. Launch VitaTunnel. Its config is prefilled; no GitHub account/repo editing is required for a new setup.
 
-The CI workflow uses VitaSDK 2026.08, retrieves a pinned VPK installer, bundles a CA certificate store and preserves HTTPS certificate/hostname verification. The in-memory CA loader was introduced in v0.1.2. v0.3.1 normalizes its CA bundle. v0.3.2 works around VitaSDK curl's bulk CA importer by passing one accepted root first and injecting the remaining trusted roots individually through the documented OpenSSL SSL_CTX callback. TLS peer and hostname verification remain enabled, and curl's detailed failure text is displayed when HTTPS fails. **Hardware success of HTTPS and the Vita promoter remains unverified**.
+The CI workflow uses VitaSDK 2026.08, retrieves a pinned VPK installer, bundles a CA certificate store and preserves HTTPS certificate/hostname verification. The in-memory CA loader was introduced in v0.1.2. v0.3.1 normalizes its CA bundle. v0.3.2 tried the OpenSSL SSL_CTX callback but this triggered out-of-memory error 27 on real hardware. v0.3.3 instead splits the verified root bundle into small groups (up to eight), tries each group separately when TLS cannot build a verified chain, and remembers a successful group for future launches. Each attempt still verifies TLS peer and hostname; no insecure fallbacks or TLS Fixer changes are required. Curl's detailed failure text remains visible if HTTPS fails. **Hardware success of HTTPS and the Vita promoter remains unverified**.
 
 ## Publishing a separate NFSMW AOT test build
 

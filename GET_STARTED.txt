@@ -1,11 +1,11 @@
-VITATUNNEL v0.3.2 — NFSMW 2005 AOT TEST RELAY
+VITATUNNEL v0.3.3 — NFSMW 2005 AOT TEST RELAY
 
 App TITLE_ID: VITATUNN1
 Target AOT TITLE_ID: NFMRA0001 (not NFSMWVITA)
 Relay repo: ChatProductions/VitaTunnel-Relay
 Vita game logs: ux0:data/ps2vita/{startup,fault,progress}.txt
 
-1. GitHub Actions -> Build VitaTunnel VPK -> download VitaTunnel-v0.3.2-VPK.
+1. GitHub Actions -> Build VitaTunnel VPK -> download VitaTunnel-v0.3.3-VPK.
 2. Install VitaTunnel.vpk in VitaShell and open VitaTunnel.
 3. On first run the included config.ini is copied to:
    ux0:data/vitatunnel/config.ini
