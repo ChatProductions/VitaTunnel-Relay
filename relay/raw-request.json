@@ -2,5 +2,6 @@
   "tag": "game-nfsmw-aot-20261028-osd",
   "filename": "NFSMW05_AOT_Vita_Test_20261028_SyscallOSD.vpk",
   "sha256": "f7d315e4862d0987904b023a591acc6a0a87fa372f2f2f930600074ea9b91161",
-  "title_id": "NFMRA0001"
+  "title_id": "NFMRA0001",
+  "mirror_retry": 1
 }
