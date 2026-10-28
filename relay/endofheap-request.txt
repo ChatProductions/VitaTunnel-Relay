@@ -1,0 +1,3 @@
+publish=game-nfsmw-aot-20261028-endofheap-hotfix
+source=game-nfsmw-aot-20261028-osd
+vpk=NFSMW05_AOT_EndOfHeap_HOTFIX.vpk
