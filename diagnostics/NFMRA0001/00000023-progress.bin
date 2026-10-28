@@ -1,0 +1,16 @@
+pc=0015E114
+opcode=1040FFFA
+cycles=6000000
+fast_path_instructions=2798461
+aot_trace_entries=0
+aot_trace_horizon_fallbacks=0
+v0=0000000000000000
+a0=FFFFFFFFEEEEEEEE
+a1=00000000000000EE
+a2=000000000011F5E0
+sp=0000000001FFFC30
+ra=00000000001611D0
+status=00010000
+cause=00000000
+epc=00000000
+badvaddr=00000000
