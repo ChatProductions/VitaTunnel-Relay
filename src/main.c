@@ -27,8 +27,8 @@ void vt_screen_message(const char *msg){
   vita2d_clear_screen();
   vita2d_draw_rectangle(0,0,960,544,0xFF161B27);
   vita2d_draw_rectangle(0,0,960,75,0xFF455C9B);
-  vita2d_pgf_draw_text(font,38,49,0xFFFFFFFF,1.45f,"VitaTunnel   0.1.2");
-  vita2d_pgf_draw_text(font,38,130,0xFFFFFFFF,1.05f,"Secure GitHub build / diagnostic relay");
+  vita2d_pgf_draw_text(font,38,49,0xFFFFFFFF,1.45f,"VitaTunnel   0.3");
+  vita2d_pgf_draw_text(font,38,130,0xFFFFFFFF,1.05f,"NFSMW 2005 AOT Test / secure GitHub relay");
   vita2d_pgf_draw_text(font,38,195,0xFFE0F5FF,1.1f,state);
   vita2d_pgf_draw_text(font,38,263,0xFF9FC0CE,0.9f,"Open this app to sync. Nothing runs in the background.");
   vita2d_pgf_draw_text(font,38,306,0xFF9FC0CE,0.9f,"Diagnostics: configured directories only, no PC access.");
@@ -41,23 +41,34 @@ static void err_state(const char *title,int error){
   char buf[200];snprintf(buf,sizeof(buf),"%s  (error %d / 0x%08X)",title,error,(unsigned)error);
   vt_screen_message(buf);
 }
-static void first_config(void){
-  const char *tmpl=
-    "# VitaTunnel config - configure once in VitaShell. NEVER share your token.\n"
-    "owner=YOUR_GITHUB_NAME\n"
-    "repo=YOUR_RELAY_REPOSITORY\n"
-    "branch=main\n"
-    "title_id=OPENCE001\n"
-    "# Optional GitHub fine-grained token, Contents: Read/Write on THIS repo only.\n"
-    "# Leave blank to disable uploading diagnostics.\n"
-    "token=\n"
-    "log_dir=ux0:data/open-ce/logs\n"
-    "log_file=\n"
-    "upload_logs=1\n"
-    "upload_core=0\n"
-    "auto_launch=1\n";
-  FILE *f=fopen(VT_CONFIG,"rb");if(f){fclose(f);return;}
-  vt_write_text(VT_CONFIG,tmpl);
+/* Read the public, token-free defaults included at the root of the VPK. */
+static int bundled_config(char *out,size_t max){
+  static const char *paths[]={"app0:/config.ini","app0:config.ini",
+                              "ux0:app/VITATUNN1/config.ini"};
+  for(size_t i=0;i<sizeof(paths)/sizeof(paths[0]);i++){
+    if(vt_read_text(paths[i],out,max)>0)return 0;
+  }
+  return -1;
+}
+static int first_config(void){
+  char tmpl[2048];
+  if(bundled_config(tmpl,sizeof(tmpl))<0)return -1;
+  FILE *f=fopen(VT_CONFIG,"rb");
+  if(!f)return vt_write_text(VT_CONFIG,tmpl);
+  fclose(f);
+  VTConfig prev;
+  /* Only migrate the untouched v0.1 template. Any token or edits stay intact. */
+  if(vt_read_config(VT_CONFIG,&prev)==0 &&
+     !strcmp(prev.owner,"YOUR_GITHUB_NAME") &&
+     !strcmp(prev.repo,"YOUR_RELAY_REPOSITORY") &&
+     !strcmp(prev.branch,"main") &&
+     !strcmp(prev.title_id,"OPENCE001") &&
+     !strcmp(prev.log_dir,"ux0:data/open-ce/logs") &&
+     !prev.log_file[0] && !prev.token[0] &&
+     prev.upload_logs && !prev.upload_core && prev.auto_launch){
+    return vt_write_text(VT_CONFIG,tmpl);
+  }
+  return 0;
 }
 static int version_is_same(const VTManifest *m){
   char old[128];if(vt_read_text(VT_STATE,old,sizeof(old))<0)return 0;
@@ -101,9 +112,14 @@ static int validate_package_title(const char *vpk,const char *expected){
 static void report_progress(int pct,const char *msg){(void)pct;vt_screen_message(msg?msg:"Installing...");}
 static int sync_once(void){
   VTConfig cfg;VTManifest mf;char url[620],hash[65];int r;
-  vt_mkdir();first_config();
+  vt_mkdir();
+  if(first_config()<0){vt_screen_message("Bundled config.ini missing or could not be saved.");return -1;}
   r=vt_read_config(VT_CONFIG,&cfg);
-  if(r<0){vt_screen_message("Edit config.ini in VitaShell, then press SQUARE.");return r;}
+  if(r<0){vt_screen_message("Check ux0:data/vitatunnel/config.ini in VitaShell.");return r;}
+  if(!strcmp(cfg.title_id,"OPENCE001")){
+    vt_screen_message("Old OpenCE placeholder: set title_id=NFMRA0001 in config.ini.");
+    return -44;
+  }
   vt_screen_message("Checking previously generated diagnostics...");
   r=vt_report_network_init();if(r<0){err_state(r==-77?"CA bundle missing or unreadable":"Networking initialization failed",r);return r;}
   if(cfg.token[0]&&cfg.upload_logs){
@@ -113,7 +129,11 @@ static int sync_once(void){
   snprintf(url,sizeof(url),"https://raw.githubusercontent.com/%s/%s/%s/tunnel/manifest.txt",cfg.owner,cfg.repo,cfg.branch);
   vt_screen_message("Checking GitHub build manifest...");
   r=vt_http_download(url,VT_MANIFEST);
-  if(r<0){err_state("Manifest HTTPS download failed",r);goto finish;}
+  if(r<0){
+    if(r==-22)vt_screen_message("No NFSMW AOT test manifest yet (GitHub HTTP error).");
+    else err_state("Manifest HTTPS download failed",r);
+    goto finish;
+  }
   r=vt_read_manifest(VT_MANIFEST,&mf);
   if(r<0){err_state("Invalid manifest",r);goto finish;}
   if(strcmp(cfg.title_id,mf.title_id)){r=-40;err_state("Manifest target ID mismatch",r);goto finish;}

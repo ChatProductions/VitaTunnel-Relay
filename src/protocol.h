@@ -10,6 +10,7 @@
 typedef struct {
   char owner[80], repo[80], branch[80], title_id[16];
   char token[192], log_dir[256], log_file[256];
+  char log_fault[256], log_progress[256];
   int upload_logs, upload_core, auto_launch;
 } VTConfig;
 typedef struct {

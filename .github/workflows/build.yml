@@ -28,6 +28,21 @@ jobs:
             echo 'Missing CA certificate store' >&2
             exit 1
           fi
+      - name: Validate AOT relay configuration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from configparser import ConfigParser
+          cp=ConfigParser()
+          cp.read_string('[relay]\n'+Path('assets/config.ini').read_text())
+          cfg=cp['relay']
+          assert cfg['owner']=='ChatProductions'
+          assert cfg['repo']=='VitaTunnel-Relay'
+          assert cfg['title_id']==Path('relay/target_id.txt').read_text().strip()=='NFMRA0001'
+          assert cfg['log_dir']=='ux0:data/ps2vita'
+          assert cfg.getboolean('upload_logs') is False
+          assert cfg['token']==''
+          PY
       - name: Configure and compile
         run: |
           export VITASDK="${VITASDK:-/usr/local/vitasdk}"
@@ -36,5 +51,5 @@ jobs:
       - name: Upload VPK
         uses: actions/upload-artifact@v4
         with:
-          name: VitaTunnel-v0.1.2-VPK
+          name: VitaTunnel-v0.3-VPK
           path: build/VitaTunnel.vpk

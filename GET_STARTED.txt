@@ -1,17 +1,19 @@
-VITATUNNEL v0.1
+VITATUNNEL v0.3 — NFSMW 2005 AOT TEST RELAY
 
-START HERE: README.md
+App TITLE_ID: VITATUNN1
+Target AOT TITLE_ID: NFMRA0001 (not NFSMWVITA)
+Relay repo: ChatProductions/VitaTunnel-Relay
+Vita game logs: ux0:data/ps2vita/{startup,fault,progress}.txt
 
-This ZIP contains the real VitaSDK C source and an automated GitHub Actions
-VPK build workflow, but no precompiled .vpk. The environment used to produce
-this source did not have VitaSDK and could not download it.
+1. GitHub Actions -> Build VitaTunnel VPK -> download VitaTunnel-v0.3-VPK.
+2. Install VitaTunnel.vpk in VitaShell and open VitaTunnel.
+3. On first run the included config.ini is copied to:
+   ux0:data/vitatunnel/config.ini
+   Untouched v0.1 placeholders are upgraded; modified configs stay unchanged.
+4. The app waits for a real NFSMW AOT game release (tag game-*) in the relay.
 
-Build in a GitHub repository: Actions -> Build VitaTunnel VPK -> Run workflow.
-A separate workflow updates tunnel/manifest.txt when you create a game-*
-GitHub release with exactly one .vpk attachment.
+token= is blank and upload_logs=0 by default. NO reports are uploaded
+without explicit opt-in; public GitHub logs are PUBLIC.
+Do not share tokens or commit private PS2 game files.
 
-FIRST USE: Install VitaTunnel, open it, edit the generated config.ini once.
-AFTERWARDS: Open VitaTunnel to transfer logs, download/install verified game
-updates, and launch. Reopen after a test to upload logs. No background service.
-
-DO NOT send GitHub tokens through ChatGPT. Public relay logs are PUBLIC.
+More details: README.md

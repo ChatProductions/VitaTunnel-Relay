@@ -89,7 +89,7 @@ static int download_progress(void *ctx,curl_off_t total,curl_off_t got,
 }
 static CURLcode options(CURL *h,const char *url){
   curl_easy_setopt(h,CURLOPT_URL,url);
-  curl_easy_setopt(h,CURLOPT_USERAGENT,"VitaTunnel/0.1.2");
+  curl_easy_setopt(h,CURLOPT_USERAGENT,"VitaTunnel/0.3");
   curl_easy_setopt(h,CURLOPT_SSL_VERIFYPEER,1L);
   curl_easy_setopt(h,CURLOPT_SSL_VERIFYHOST,2L);
   struct curl_blob trust={ca_bundle,ca_bundle_len,CURL_BLOB_COPY};
@@ -222,26 +222,36 @@ static int recent_file(const char *folder,const char *suffix,char out[400]){
   if(!found)return -2;
   snprintf(out,400,"%s/%s",folder,chosen);return 0;
 }
+/* All AOT files are explicit, optional paths inside ux0:data/ps2vita.
+ * A missing file is normal when the test fails before it can write logs. */
+static int upload_if_present(const VTConfig *c,const char *path,const char *name){
+  if(!path[0] || !vt_valid_logpath(path))return 1;
+  SceIoStat stat;
+  if(sceIoGetstat(path,&stat)<0 || SCE_S_ISDIR(stat.st_mode))return 1;
+  return vt_report_upload(c,path,name);
+}
 int vt_report_collect(const VTConfig *c){
   if(!c->upload_logs || !c->token[0])return 0;
   int successes=0, first_error=0;char path[400];
-  if(c->log_file[0]&&vt_valid_logpath(c->log_file)){
-    int r=vt_report_upload(c,c->log_file,"game_log");
+  const char *files[]={c->log_file,c->log_fault,c->log_progress};
+  const char *names[]={"startup","fault","progress"};
+  for(size_t i=0;i<sizeof(files)/sizeof(files[0]);i++){
+    int r=upload_if_present(c,files[i],names[i]);
     if(r==0)successes++;
-    else if(r<0 && first_error==0)first_error=r;
+    else if(r<0 && !first_error)first_error=r;
   }
   if(c->log_dir[0]&&vt_valid_logpath(c->log_dir)){
     if(recent_file(c->log_dir,".log",path)==0){
       int r=vt_report_upload(c,path,"newest_log");
       if(r==0)successes++;
-      else if(r<0&&first_error==0)first_error=r;
+      else if(r<0&&!first_error)first_error=r;
     }
   }
   if(c->upload_core && recent_file("ux0:data",".psp2dmp",path)==0){
-    // Core dumps may contain memory from another title. Opt-in only, latest file only.
+    // Core dumps can belong to other apps; explicit opt-in only.
     int r=vt_report_upload(c,path,"recent_core_tail");
     if(r==0)successes++;
-    else if(r<0&&first_error==0)first_error=r;
+    else if(r<0&&!first_error)first_error=r;
   }
   return first_error?first_error:successes;
 }

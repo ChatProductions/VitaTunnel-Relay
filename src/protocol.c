@@ -78,13 +78,18 @@ int vt_read_config(const char *path,VTConfig *c){
     else if(!strcmp(k,"token"))put(c->token,sizeof(c->token),v);
     else if(!strcmp(k,"log_dir"))put(c->log_dir,sizeof(c->log_dir),v);
     else if(!strcmp(k,"log_file"))put(c->log_file,sizeof(c->log_file),v);
+    else if(!strcmp(k,"log_fault"))put(c->log_fault,sizeof(c->log_fault),v);
+    else if(!strcmp(k,"log_progress"))put(c->log_progress,sizeof(c->log_progress),v);
     else if(!strcmp(k,"upload_logs"))c->upload_logs=atoi(v)==1;
     else if(!strcmp(k,"upload_core"))c->upload_core=atoi(v)==1;
     else if(!strcmp(k,"auto_launch"))c->auto_launch=atoi(v)==1;
   }
   fclose(f);
   if(!vt_valid_slug(c->owner)||!vt_valid_slug(c->repo)||!vt_valid_slug(c->branch)||!vt_valid_titleid(c->title_id))return -2;
-  if((c->log_dir[0]&&!vt_valid_logpath(c->log_dir))||(c->log_file[0]&&!vt_valid_logpath(c->log_file)))return -3;
+  if((c->log_dir[0]&&!vt_valid_logpath(c->log_dir))||
+     (c->log_file[0]&&!vt_valid_logpath(c->log_file))||
+     (c->log_fault[0]&&!vt_valid_logpath(c->log_fault))||
+     (c->log_progress[0]&&!vt_valid_logpath(c->log_progress)))return -3;
   return 0;
 }
 int vt_read_manifest(const char *path,VTManifest *m){

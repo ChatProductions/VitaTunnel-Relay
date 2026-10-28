@@ -1,5 +1,6 @@
-# The Game VPK's release is separate from VitaTunnel itself.
-version=test-0001
-title_id=OPENCE001
-vpk_url=https://github.com/YOUR_ACCOUNT/YOUR_RELAY_REPO/releases/download/test-0001/game.vpk
-sha256=REPLACE_WITH_64_DIGIT_SHA256_OF_GAME_VPK
+# Example only. The real tunnel/manifest.txt is written by publish-game.yml.
+# No NFSMW AOT game VPK has been published by this placeholder.
+version=game-nfsmw-aot-001
+title_id=NFMRA0001
+vpk_url=https://github.com/ChatProductions/VitaTunnel-Relay/releases/download/game-nfsmw-aot-001/NFSMW_AOT_Test.vpk
+sha256=REPLACE_WITH_ACTUAL_SHA256_FROM_RELEASE
