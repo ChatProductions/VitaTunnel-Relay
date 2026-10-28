@@ -47,7 +47,7 @@ int vt_valid_vpk_url(const char *url){
   // Both allowed formats are HTTPS and end in a VPK. The caller further
   // constrains the URL to its configured repository, branch and package path.
   if(!url || strlen(url)>550)return 0;
-  if(strchr(url,'\\n')||strchr(url,'\\r')||strchr(url,' ')||
+  if(strchr(url,'\n')||strchr(url,'\r')||strchr(url,' ')||
      strchr(url,'@')||strchr(url,'#')||strchr(url,'?'))return 0;
   const size_t n=strlen(url);
   if(n<4 || strcmp(url+n-4,".vpk"))return 0;
