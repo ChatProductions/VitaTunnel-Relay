@@ -1,0 +1,34 @@
+name: Publish verified NFSMW AOT VPK
+
+# The private PS2 boot.elf is never uploaded or checked into this repository.
+# Only an already-built, SHA-verified Vita VPK is released.
+on:
+  push:
+    branches: [main]
+    paths:
+      - relay/release-request.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nfsmw-aot-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out relay
+        uses: actions/checkout@v4
+      - name: Validate staged VPK and publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/publish_staged_aot.py
+      - name: Commit live VitaTunnel manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tunnel/manifest.txt
+          git diff --staged --quiet || (git commit -m "Publish verified NFSMW AOT manifest" && git push)
