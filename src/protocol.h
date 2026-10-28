@@ -6,7 +6,6 @@
 #define VT_STATE VT_DIR "/state.txt"
 #define VT_VPK VT_DIR "/pending.vpk"
 #define VT_MANIFEST VT_DIR "/manifest.txt"
-#define VT_CA "app0:cacert.pem"
 #define VT_MAXLOG (256*1024)
 typedef struct {
   char owner[80], repo[80], branch[80], title_id[16];

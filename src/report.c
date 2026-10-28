@@ -16,6 +16,35 @@
 
 static void *netmem;
 static int netready;
+static unsigned char *ca_bundle;
+static size_t ca_bundle_len;
+
+/* The Vita's fopen() understands app0: paths, but OpenSSL's CA-file
+ * loader may not. Read the bundled PEM using the Vita filesystem API,
+ * then give curl its own in-memory copy for certificate verification. */
+static int load_ca_bundle(void){
+  static const char *paths[]={
+    "app0:/cacert.pem", "app0:cacert.pem",
+    "ux0:app/VITATUNN1/cacert.pem"
+  };
+  for(size_t i=0;i<sizeof(paths)/sizeof(paths[0]);i++){
+    FILE *f=fopen(paths[i],"rb");
+    if(!f)continue;
+    if(fseek(f,0,SEEK_END)!=0){fclose(f);continue;}
+    long size=ftell(f);
+    if(size<64 || size>1024*1024 || fseek(f,0,SEEK_SET)!=0){fclose(f);continue;}
+    unsigned char *data=malloc((size_t)size+1);
+    if(!data){fclose(f);return -12;}
+    size_t n=fread(data,1,(size_t)size,f);
+    fclose(f);
+    data[n]=0;
+    if(n==(size_t)size && strstr((const char*)data,"-----BEGIN CERTIFICATE-----")){
+      ca_bundle=data;ca_bundle_len=n;return 0;
+    }
+    free(data);
+  }
+  return -77; /* Missing or unreadable CA bundle; never disable verification. */
+}
 int vt_report_network_init(void){
   sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
   sceSysmoduleLoadModule(SCE_SYSMODULE_HTTPS);
@@ -28,11 +57,18 @@ int vt_report_network_init(void){
   if(curl_global_init(CURL_GLOBAL_DEFAULT)!=CURLE_OK){
     sceNetCtlTerm();sceNetTerm();free(netmem);netmem=NULL;return -5;
   }
+  r=load_ca_bundle();
+  if(r<0){
+    curl_global_cleanup();sceNetCtlTerm();sceNetTerm();
+    free(netmem);netmem=NULL;return r;
+  }
   netready=1;return 0;
 }
 void vt_report_network_shutdown(void){
   if(!netready)return;
-  curl_global_cleanup();sceNetCtlTerm();sceNetTerm();free(netmem);netmem=NULL;
+  curl_global_cleanup();sceNetCtlTerm();sceNetTerm();
+  free(ca_bundle);ca_bundle=NULL;ca_bundle_len=0;
+  free(netmem);netmem=NULL;
   sceSysmoduleUnloadModule(SCE_SYSMODULE_NET);netready=0;
 }
 typedef struct { int last_percent; int initialized; } DlProgress;
@@ -51,12 +87,13 @@ static int download_progress(void *ctx,curl_off_t total,curl_off_t got,
   }
   return 0;
 }
-static void options(CURL *h,const char *url){
+static CURLcode options(CURL *h,const char *url){
   curl_easy_setopt(h,CURLOPT_URL,url);
-  curl_easy_setopt(h,CURLOPT_USERAGENT,"VitaTunnel/0.1");
+  curl_easy_setopt(h,CURLOPT_USERAGENT,"VitaTunnel/0.1.2");
   curl_easy_setopt(h,CURLOPT_SSL_VERIFYPEER,1L);
   curl_easy_setopt(h,CURLOPT_SSL_VERIFYHOST,2L);
-  curl_easy_setopt(h,CURLOPT_CAINFO,VT_CA);
+  struct curl_blob trust={ca_bundle,ca_bundle_len,CURL_BLOB_COPY};
+  CURLcode certificate_result=curl_easy_setopt(h,CURLOPT_CAINFO_BLOB,&trust);
   curl_easy_setopt(h,CURLOPT_PROTOCOLS,CURLPROTO_HTTPS);
   curl_easy_setopt(h,CURLOPT_REDIR_PROTOCOLS,CURLPROTO_HTTPS);
   curl_easy_setopt(h,CURLOPT_CONNECTTIMEOUT,20L);
@@ -67,6 +104,7 @@ static void options(CURL *h,const char *url){
   curl_easy_setopt(h,CURLOPT_LOW_SPEED_LIMIT,1L);
   curl_easy_setopt(h,CURLOPT_LOW_SPEED_TIME,45L);
   curl_easy_setopt(h,CURLOPT_MAXFILESIZE_LARGE,(curl_off_t)(512LL*1024*1024));
+  return certificate_result;
 }
 static size_t to_file(char *ptr,size_t size,size_t nmemb,void *ctx){
   FILE *f=(FILE*)ctx;return fwrite(ptr,size,nmemb,f)*size;
@@ -74,7 +112,9 @@ static size_t to_file(char *ptr,size_t size,size_t nmemb,void *ctx){
 int vt_http_download(const char *url,const char *path){
   FILE *f=fopen(path,"wb");if(!f)return -1;
   CURL *h=curl_easy_init();if(!h){fclose(f);return -2;}
-  options(h,url);DlProgress progress={0};
+  CURLcode setup=options(h,url);
+  if(setup!=CURLE_OK){curl_easy_cleanup(h);fclose(f);remove(path);return -(int)setup;}
+  DlProgress progress={0};
   curl_easy_setopt(h,CURLOPT_NOPROGRESS,0L);
   curl_easy_setopt(h,CURLOPT_XFERINFOFUNCTION,download_progress);
   curl_easy_setopt(h,CURLOPT_XFERINFODATA,&progress);
@@ -107,7 +147,9 @@ static int gh_write(const VTConfig *c,const char *filename,const char *raw,size_
   headers=curl_slist_append(headers,"Content-Type: application/json");
   headers=curl_slist_append(headers,"X-GitHub-Api-Version: 2022-11-28");
   CURL *h=curl_easy_init();if(!h){curl_slist_free_all(headers);free(body);return -24;}
-  options(h,url);curl_easy_setopt(h,CURLOPT_HTTPHEADER,headers);
+  CURLcode setup=options(h,url);
+  if(setup!=CURLE_OK){curl_easy_cleanup(h);curl_slist_free_all(headers);free(body);return -(int)setup;}
+  curl_easy_setopt(h,CURLOPT_HTTPHEADER,headers);
   curl_easy_setopt(h,CURLOPT_CUSTOMREQUEST,"PUT");
   curl_easy_setopt(h,CURLOPT_POSTFIELDS,body);
   curl_easy_setopt(h,CURLOPT_POSTFIELDSIZE,(long)strlen(body));

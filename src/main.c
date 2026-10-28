@@ -27,7 +27,7 @@ void vt_screen_message(const char *msg){
   vita2d_clear_screen();
   vita2d_draw_rectangle(0,0,960,544,0xFF161B27);
   vita2d_draw_rectangle(0,0,960,75,0xFF455C9B);
-  vita2d_pgf_draw_text(font,38,49,0xFFFFFFFF,1.45f,"VitaTunnel   0.1");
+  vita2d_pgf_draw_text(font,38,49,0xFFFFFFFF,1.45f,"VitaTunnel   0.1.2");
   vita2d_pgf_draw_text(font,38,130,0xFFFFFFFF,1.05f,"Secure GitHub build / diagnostic relay");
   vita2d_pgf_draw_text(font,38,195,0xFFE0F5FF,1.1f,state);
   vita2d_pgf_draw_text(font,38,263,0xFF9FC0CE,0.9f,"Open this app to sync. Nothing runs in the background.");
@@ -105,7 +105,7 @@ static int sync_once(void){
   r=vt_read_config(VT_CONFIG,&cfg);
   if(r<0){vt_screen_message("Edit config.ini in VitaShell, then press SQUARE.");return r;}
   vt_screen_message("Checking previously generated diagnostics...");
-  r=vt_report_network_init();if(r<0){err_state("Networking initialization failed",r);return r;}
+  r=vt_report_network_init();if(r<0){err_state(r==-77?"CA bundle missing or unreadable":"Networking initialization failed",r);return r;}
   if(cfg.token[0]&&cfg.upload_logs){
     int sent=vt_report_collect(&cfg);
     if(sent<0)err_state("Diagnostic upload failed; continuing",sent);

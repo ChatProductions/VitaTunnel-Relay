@@ -45,7 +45,7 @@ target_link_libraries(vitatunnel PRIVATE
   SceCommonDialog_stub m pthread)
 vita_create_self(eboot.bin vitatunnel UNSAFE)
 vita_create_vpk(VitaTunnel.vpk VITATUNN1 eboot.bin
-  VERSION 01.01 NAME "VitaTunnel"
+  VERSION 01.02 NAME "VitaTunnel"
   FILE assets/cacert.pem cacert.pem
   FILE assets/icon0.png sce_sys/icon0.png
   FILE assets/bg.png sce_sys/livearea/contents/bg.png
