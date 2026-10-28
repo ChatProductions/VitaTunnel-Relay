@@ -1,0 +1,67 @@
+name: Mirror verified AOT VPK to raw GitHub host
+on:
+  push:
+    branches: [main]
+    paths: [relay/raw-request.json]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: vitatunnel-raw-mirror
+  cancel-in-progress: false
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout relay
+        uses: actions/checkout@v4
+      - name: Download release VPK and verify before mirroring
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess, hashlib, re, zipfile, struct
+          d=json.loads(pathlib.Path('relay/raw-request.json').read_text())
+          tag=d['tag']; filename=d['filename']; expected=d['sha256']; title=d['title_id']
+          if not re.fullmatch(r'game-[A-Za-z0-9_.-]{1,42}',tag): raise SystemExit('invalid tag')
+          if not re.fullmatch(r'[A-Za-z0-9_.-]+\.vpk',filename): raise SystemExit('invalid VPK filename')
+          if not re.fullmatch(r'[0-9a-f]{64}',expected): raise SystemExit('invalid hash')
+          if title!='NFMRA0001':raise SystemExit('wrong game ID')
+          repo=os.environ['GITHUB_REPOSITORY']
+          subprocess.run(['gh','release','download',tag,'--repo',repo,'--pattern',filename,
+                          '--dir','/tmp','--clobber'],check=True)
+          p=pathlib.Path('/tmp')/filename
+          if hashlib.sha256(p.read_bytes()).hexdigest()!=expected:
+              raise SystemExit('release digest mismatch')
+          with zipfile.ZipFile(p) as z:
+              names=z.namelist()
+              if 'eboot.bin' not in names or 'sce_sys/param.sfo' not in names:
+                  raise SystemExit('missing Vita executable or title metadata')
+              if any(n.lower().endswith('boot.elf') for n in names):
+                  raise SystemExit('refusing to mirror private boot.elf')
+              sfo=z.read('sce_sys/param.sfo')
+          if len(sfo)<20:raise SystemExit('short SFO')
+          magic,revision,keys,data,count=struct.unpack_from('<IIIII',sfo)
+          if magic!=0x46535000 or count>128:raise SystemExit('bad SFO')
+          got=None
+          for i in range(count):
+              ko,fmt,used,maxlen,offset=struct.unpack_from('<HHIII',sfo,20+i*16)
+              if keys+ko>=len(sfo) or data+offset+used>len(sfo):raise SystemExit('bad SFO offset')
+              if sfo[keys+ko:sfo.find(b'\x00',keys+ko)]==b'TITLE_ID':
+                  got=sfo[data+offset:data+offset+used].rstrip(b'\x00').decode('ascii')
+          if got!=title:raise SystemExit('VPK game ID mismatch')
+          dest=pathlib.Path('tunnel/packages')/filename
+          dest.parent.mkdir(parents=True,exist_ok=True)
+          dest.write_bytes(p.read_bytes())
+          url=f'https://raw.githubusercontent.com/{repo}/main/{dest.as_posix()}'
+          pathlib.Path('tunnel/manifest.txt').write_text(
+              f'version={tag}-raw\ntitle_id={title}\nvpk_url={url}\nsha256={expected}\n')
+          print('VPK validated and mirrored:',url)
+          PY
+      - name: Commit matching binary and manifest atomically
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tunnel/packages/ tunnel/manifest.txt
+          git diff --staged --quiet || (git commit -m "Mirror verified NFSMW AOT VPK on raw HTTPS host" && git push)
