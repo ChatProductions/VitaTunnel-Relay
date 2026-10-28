@@ -1,0 +1,4 @@
+version=test-0001
+title_id=OPENCE001
+vpk_url=https://github.com/ChatProductions/VitaTunnel-Relay/releases/download/test-0001/game.vpk
+sha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
