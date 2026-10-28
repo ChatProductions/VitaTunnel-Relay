@@ -8,6 +8,20 @@ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 project(VitaTunnel C)
 include("$ENV{VITASDK}/share/vita.cmake")
+# VitaShell requires 8-bit indexed, non-interlaced LiveArea images.
+# Fail during CMake configuration instead of distributing an uninstallable VPK.
+foreach(asset icon0 startup bg)
+  file(READ "${CMAKE_CURRENT_SOURCE_DIR}/assets/${asset}.png" png_header HEX LIMIT 29)
+  string(SUBSTRING "${png_header}" 0 16 png_signature)
+  string(SUBSTRING "${png_header}" 24 8 png_chunk)
+  string(SUBSTRING "${png_header}" 48 10 png_format)
+  if(NOT png_signature STREQUAL "89504e470d0a1a0a" OR
+     NOT png_chunk STREQUAL "49484452" OR
+     NOT png_format STREQUAL "0803000000")
+    message(FATAL_ERROR "assets/${asset}.png must be an 8-bit indexed (palette), non-interlaced PNG")
+  endif()
+endforeach()
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wl,-q -Wl,-z,noexecstack")
 set(VITA_MAKE_FSELF_FLAGS "${VITA_MAKE_FSELF_FLAGS} -a 0x2808000000000000")
@@ -31,7 +45,7 @@ target_link_libraries(vitatunnel PRIVATE
   SceCommonDialog_stub m pthread)
 vita_create_self(eboot.bin vitatunnel UNSAFE)
 vita_create_vpk(VitaTunnel.vpk VITATUNN1 eboot.bin
-  VERSION 01.00 NAME "VitaTunnel"
+  VERSION 01.01 NAME "VitaTunnel"
   FILE assets/cacert.pem cacert.pem
   FILE assets/icon0.png sce_sys/icon0.png
   FILE assets/bg.png sce_sys/livearea/contents/bg.png
