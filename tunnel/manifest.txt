@@ -1,4 +1,4 @@
-version=game-nfsmw-aot-20261028-osd
+version=game-nfsmw-aot-20261028-osd-raw
 title_id=NFMRA0001
-vpk_url=https://github.com/ChatProductions/VitaTunnel-Relay/releases/download/game-nfsmw-aot-20261028-osd/NFSMW05_AOT_Vita_Test_20261028_SyscallOSD.vpk
+vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW05_AOT_Vita_Test_20261028_SyscallOSD.vpk
 sha256=f7d315e4862d0987904b023a591acc6a0a87fa372f2f2f930600074ea9b91161
