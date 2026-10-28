@@ -1,0 +1,2 @@
+version=0.3.4
+release=https://github.com/ChatProductions/VitaTunnel-Relay/releases/tag/vitatunnel-v0.3.4
