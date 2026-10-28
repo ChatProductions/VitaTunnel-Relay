@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Install VitaSDK packages
         run: |
-          vdpm install libvita2d libzip curl openssl zlib zstd xz bzip2 libpng libjpeg-turbo freetype
+          vdpm install libvita2d libzip curl zlib zstd xz bzip2 libpng libjpeg-turbo freetype
       - name: Install pinned installer module
         run: bash tools/prepare_vendor.sh
       - name: Bundle host CA certificate store
