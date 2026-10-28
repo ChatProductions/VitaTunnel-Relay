@@ -1,4 +1,4 @@
-version=game-nfsmw-aot-20261029-deci2-r4
+version=game-nfsmw-aot-20261029-native-iop-r5
 title_id=NFMRA0001
-vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW05_AOT_DECI2_20261029.vpk
-sha256=2b0e06687058b2f3340b521a72839bef782c15ddb37a119e899e46fba76f1e5b
+vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW05_AOT_NATIVE_IOP_20261029.vpk
+sha256=d882553f70fccc157bdb6bc806af5263f0306ec2cf73616a146e58834dd7a1b3
