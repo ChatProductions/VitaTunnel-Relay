@@ -79,3 +79,12 @@ jobs:
               --title "VitaTunnel v0.3.4 (direct raw-host VPK downloads)" \
               --notes "Use once to replace v0.3.3. Preserves existing config, downloads verified AOT builds from the repository-scoped raw.githubusercontent.com package path, avoids GitHub Release TLS redirects. No private game ELF or credentials are bundled."
           fi
+      - name: Record successful release for the Vita bridge
+        run: |
+          git clone --depth 1 --branch main "https://x-access-token:${{ github.token }}@github.com/$GITHUB_REPOSITORY.git" mirror-status
+          cd mirror-status
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf 'version=0.3.4\nrelease=https://github.com/%s/releases/tag/vitatunnel-v0.3.4\n' "$GITHUB_REPOSITORY" > relay/bridge-version.txt
+          git add relay/bridge-version.txt
+          git diff --staged --quiet || (git commit -m "Verify released VitaTunnel 0.3.4 installer" && git push)
