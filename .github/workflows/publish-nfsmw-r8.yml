@@ -1,0 +1,44 @@
+name: Publish NFSMW r8 blocking SIF RPC VPK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/patch_nfsmw_r8_rpc_call.py
+      - .github/workflows/publish-nfsmw-r8.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nfsmw-aot-r8-publish
+  cancel-in-progress: false
+
+jobs:
+  patch-and-mirror:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply and verify r8 RPC_CALL fix
+        run: |
+          set -euo pipefail
+          python3 tools/patch_nfsmw_r8_rpc_call.py \
+            tunnel/packages/NFSMW07_AOT_FILEIO_20261029.vpk \
+            tunnel/packages/NFSMW08_AOT_RPC_CALL_20261029.vpk \
+            --manifest tunnel/manifest.txt
+      - name: Commit the verified binary and matching manifest together
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f tunnel/packages/NFSMW08_AOT_RPC_CALL_20261029.vpk
+          git add tunnel/manifest.txt
+          if git diff --staged --quiet; then exit 0; fi
+          git commit -m "Publish NFSMW r8 blocking SIF RPC call fix"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
