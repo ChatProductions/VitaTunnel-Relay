@@ -1,4 +1,4 @@
-version=game-nfsmw-aot-20261029-rpc-trace-r10
+version=game-nfsmw-aot-20261029-fileio-reply-r11
 title_id=NFMRA0001
-vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW10_AOT_RPCGUARD_20261029.vpk
-sha256=2ef2b99979b0b32e66ccb15ef3a96043b664736838a1dba8305bdc5f39e39bb5
+vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW11_AOT_FILEIO8_20261029.vpk
+sha256=5f85644f2851eff0568c9b8811d765740266e3b01a1e3daa204bc240a4ca4336
