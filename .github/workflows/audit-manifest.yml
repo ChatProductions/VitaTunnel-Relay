@@ -6,6 +6,9 @@ on:
       - 'tunnel/manifest.txt'
       - 'tunnel/packages/**'
       - 'tools/audit_relay_manifest.py'
+      - 'diagnostics/NFMRA0001/**'
+      - 'tools/check_nfsmw_trace_evidence.py'
+      - 'tests/test_nfsmw_trace_evidence.py'
       - 'tests/test_manifest_audit.py'
       - '.github/workflows/audit-manifest.yml'
   workflow_dispatch:
@@ -22,5 +25,10 @@ jobs:
           python-version: '3.12'
       - name: Synthetic fail-closed audit regression tests
         run: python tests/test_manifest_audit.py
+      - name: Validate archived NFSMW FILEIO hardware evidence (no private assets)
+        run: |
+          python tests/test_nfsmw_trace_evidence.py
+          python tools/check_nfsmw_trace_evidence.py > /tmp/nfsmw-evidence-summary.json
+          python -m json.tool /tmp/nfsmw-evidence-summary.json
       - name: Independently verify current public VPK against manifest
         run: python tools/audit_relay_manifest.py
