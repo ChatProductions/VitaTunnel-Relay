@@ -1,0 +1,12 @@
+build=nfsmw-aot-native-fileio-ver-r14
+private title AOT armed
+bios_iop=0
+native_iop=1
+fileio_sdk=30303832
+ioprp=ROMDIR validated
+path=ux0:data/ps2vita/NFS/IOPRP280.IMG
+entries=19
+bootconf=0
+sifcmd=1
+cdvd=1
+padding_missing=15
