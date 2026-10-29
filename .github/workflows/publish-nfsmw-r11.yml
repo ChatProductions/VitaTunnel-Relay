@@ -1,0 +1,47 @@
+name: Publish NFSMW r11 FILEIO reply-size compatibility VPK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - tools/patch_nfsmw_r11_fileio8.py
+      - .github/workflows/publish-nfsmw-r11.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nfsmw-aot-r11-publish
+  cancel-in-progress: false
+
+jobs:
+  patch-and-mirror:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deterministic DEFLATE optimizer
+        run: python3 -m pip install --disable-pip-version-check --no-deps zopfli==0.4.3
+      - name: Generate and validate r11 FILEIO 4/8-byte response compatibility VPK
+        run: |
+          set -euo pipefail
+          python3 tools/patch_nfsmw_r11_fileio8.py \
+            tunnel/packages/NFSMW10_AOT_RPCGUARD_20261029.vpk \
+            tunnel/packages/NFSMW11_AOT_FILEIO8_20261029.vpk \
+            --manifest tunnel/manifest.txt
+          sha256sum tunnel/packages/NFSMW11_AOT_FILEIO8_20261029.vpk
+      - name: Publish validated package and manifest atomically
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f tunnel/packages/NFSMW11_AOT_FILEIO8_20261029.vpk
+          git add tunnel/manifest.txt
+          if git diff --staged --quiet; then exit 0; fi
+          git commit -m "Publish NFSMW r11 FILEIO response-size correction"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
