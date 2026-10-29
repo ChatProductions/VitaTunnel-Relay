@@ -1,4 +1,4 @@
-version=game-nfsmw-aot-20261029-native-iop-r5
+version=game-nfsmw-aot-20261029-romdir-r6
 title_id=NFMRA0001
-vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW05_AOT_NATIVE_IOP_20261029.vpk
-sha256=d882553f70fccc157bdb6bc806af5263f0306ec2cf73616a146e58834dd7a1b3
+vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW06_AOT_ROMDIR_20261029.vpk
+sha256=f3b89d552e44cbcd7a367f422f1bc3baf087608dd08a338929ead32dd74078e5
