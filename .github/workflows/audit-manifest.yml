@@ -1,0 +1,26 @@
+name: Audit published NFSMW manifest and public VPK
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tunnel/manifest.txt'
+      - 'tunnel/packages/**'
+      - 'tools/audit_relay_manifest.py'
+      - 'tests/test_manifest_audit.py'
+      - '.github/workflows/audit-manifest.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Synthetic fail-closed audit regression tests
+        run: python tests/test_manifest_audit.py
+      - name: Independently verify current public VPK against manifest
+        run: python tools/audit_relay_manifest.py
