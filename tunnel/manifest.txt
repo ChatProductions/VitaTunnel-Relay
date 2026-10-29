@@ -1,4 +1,4 @@
-version=game-nfsmw-aot-20261029-native-fileio-version-r14
+version=game-nfsmw-aot-20261029-fileio-r14
 title_id=NFMRA0001
 vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW14_AOT_NATIVE_FILEIO_20261029.vpk
 sha256=d5f4cf6d063115bd9b8f20a435253f024fdada8fc961ae3268f44cd0b12c2b7b
