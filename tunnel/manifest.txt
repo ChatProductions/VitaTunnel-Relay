@@ -1,4 +1,4 @@
-version=game-nfsmw-aot-20261029-fileio-r7
+version=game-nfsmw-aot-20261029-rpc-call-r8
 title_id=NFMRA0001
-vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW07_AOT_FILEIO_20261029.vpk
-sha256=2eaaf7dadbc909e7b6e1c7165a13af4ef66a72f2693aa32fb35af7d4d6f42985
+vpk_url=https://raw.githubusercontent.com/ChatProductions/VitaTunnel-Relay/main/tunnel/packages/NFSMW08_AOT_RPC_CALL_20261029.vpk
+sha256=d7393ba4dafd7f12e0fb6e97383e6a6a6b6e8e9a3182dad6e1ae86c8bdd5fde7
